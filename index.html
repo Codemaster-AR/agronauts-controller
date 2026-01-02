@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agronauts | Hydroponic Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top right, #064e3b, #020617);
+            overflow: hidden;
+        }
+
+        /* Animated Hydroponic Background */
+        .bg-overlay {
+            position: fixed;
+            inset: 0;
+            background: url('https://images.unsplash.com/photo-1558449028-b53a39d100fc?q=80&w=1920&auto=format&fit=crop') center/cover no-repeat;
+            opacity: 0.15;
+            z-index: -1;
+            filter: saturate(0.5);
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .glow-green {
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.2);
+        }
+
+        .btn-active-state {
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.1), rgba(16, 185, 129, 0.2));
+            border: 1px solid rgba(52, 211, 153, 0.4);
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, rgba(52, 211, 153, 0.5), transparent);
+            position: absolute;
+            animation: scanline 8s linear infinite;
+        }
+
+        .cooldown-timer {
+            transition: width 0.1s linear;
+        }
+    </style>
+</head>
+<body class="text-slate-200 min-h-screen flex items-center justify-center p-6">
+    <div class="bg-overlay"></div>
+    <div class="scanline"></div>
+
+    <div class="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+        
+        <!-- Sidebar / Branding -->
+        <div class="lg:col-span-4 flex flex-col justify-between space-y-8">
+            <div>
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)]">
+                        <svg class="w-6 h-6 text-slate-900" fill="currentColor" viewBox="0 0 20 20"><path d="M11 17a1 1 0 01-1-1v-2.17l-1.17 1.17a1 1 0 01-1.42-1.42l3-3a1 1 0 011.42 0l3 3a1 1 0 01-1.42 1.42L12 13.83V16a1 1 0 01-1 1zM7 9a1 1 0 01-1-1V5.83L4.83 7a1 1 0 01-1.42-1.42l3-3a1 1 0 011.42 0l3 3a1 1 0 01-1.42 1.42L8 5.83V8a1 1 0 01-1 1z"></path></svg>
+                    </div>
+                    <h1 class="text-3xl font-extrabold tracking-tighter text-white">AGRONAUTS<span class="text-emerald-500">.</span></h1>
+                </div>
+                <p class="text-slate-400 text-sm leading-relaxed">
+                    Advanced Hydroponic Automation Interface. Real-time satellite-synced command protocols.
+                </p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="glass-panel p-4 rounded-2xl flex items-center gap-4">
+                    <div id="status-dot" class="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                    <div>
+                        <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">System Status</p>
+                        <p id="status-text" class="text-sm font-medium">Initializing Security...</p>
+                    </div>
+                </div>
+                
+                <div id="user-info" class="opacity-0 transition-opacity px-1">
+                    <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Operator ID</p>
+                    <p id="user-id" class="text-xs font-mono text-emerald-500/80">...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="lg:col-span-8 relative">
+            <div class="glass-panel rounded-[2.5rem] p-8 lg:p-10 glow-green overflow-hidden relative">
+                
+                <!-- Global Lock Overlay -->
+                <div id="lock-overlay" class="hidden absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-6">
+                    <div class="mb-6 relative">
+                        <div class="w-20 h-20 border-4 border-emerald-500/20 rounded-full animate-ping absolute inset-0"></div>
+                        <div class="w-20 h-20 border-4 border-emerald-500 rounded-full flex items-center justify-center">
+                            <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                        </div>
+                    </div>
+                    <h3 class="text-2xl font-bold text-white mb-1">Command Uplink Active</h3>
+                    <p class="text-slate-400 text-sm mb-8">Synchronizing with global sensor array...</p>
+                    <div class="w-full max-w-xs h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="cooldown-progress" class="h-full bg-emerald-500 w-full cooldown-timer"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Temp Button -->
+                    <div class="group">
+                        <button id="btn-th" disabled class="w-full aspect-square md:aspect-auto md:h-64 rounded-3xl bg-slate-800/40 border border-slate-700/50 hover:border-emerald-500/50 hover:bg-slate-800/60 transition-all duration-300 flex flex-col items-center justify-center p-6 disabled:opacity-20 disabled:cursor-not-allowed">
+                            <div class="mb-4 p-4 rounded-2xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            </div>
+                            <span class="text-lg font-bold tracking-tight mb-1">Climate Scan</span>
+                            <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Temp & Humidity</span>
+                        </button>
+                        <div class="mt-4 p-3 bg-slate-900/50 rounded-xl border border-slate-800 text-center">
+                            <p class="text-[9px] uppercase text-slate-500 font-bold mb-1">Status Report</p>
+                            <p id="cmd-th" class="text-sm font-mono text-emerald-400">WAITING</p>
+                        </div>
+                    </div>
+
+                    <!-- Light Button -->
+                    <div class="group">
+                        <button id="btn-light" disabled class="w-full aspect-square md:aspect-auto md:h-64 rounded-3xl bg-slate-800/40 border border-slate-700/50 hover:border-yellow-500/50 hover:bg-slate-800/60 transition-all duration-300 flex flex-col items-center justify-center p-6 disabled:opacity-20 disabled:cursor-not-allowed">
+                            <div class="mb-4 p-4 rounded-2xl bg-yellow-500/10 text-yellow-400 group-hover:scale-110 transition-transform">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            </div>
+                            <span class="text-lg font-bold tracking-tight mb-1">Lumen Sync</span>
+                            <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Light Intensity</span>
+                        </button>
+                        <div class="mt-4 p-3 bg-slate-900/50 rounded-xl border border-slate-800 text-center">
+                            <p class="text-[9px] uppercase text-slate-500 font-bold mb-1">Status Report</p>
+                            <p id="cmd-light" class="text-sm font-mono text-yellow-400">WAITING</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 pt-8 border-t border-slate-800 flex items-center justify-between">
+                    <div class="flex gap-4">
+                        <div class="h-2 w-8 bg-emerald-500 rounded-full opacity-50"></div>
+                        <div class="h-2 w-8 bg-slate-700 rounded-full"></div>
+                        <div class="h-2 w-8 bg-slate-700 rounded-full"></div>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-600 tracking-[0.3em] uppercase">Sector 7-G Active</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getDatabase, ref, set, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCCx0UKQeYKOcNooAGzaaKvU-U_l3mDDo8",
+            authDomain: "agronauts-c8284.firebaseapp.com",
+            projectId: "agronauts-c8284",
+            storageBucket: "agronauts-c8284.firebasestorage.app",
+            messagingSenderId: "392419323380",
+            appId: "1:392419323380:web:f51ada00f23f529130dda1",
+            measurementId: "G-ZG0CL3BY2K"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+        const syncRef = ref(db, 'system_control');
+
+        const btnTH = document.getElementById('btn-th');
+        const btnLight = document.getElementById('btn-light');
+        const cmdTH = document.getElementById('cmd-th');
+        const cmdLight = document.getElementById('cmd-light');
+        const lockOverlay = document.getElementById('lock-overlay');
+        const cooldownProgress = document.getElementById('cooldown-progress');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const userIdSpan = document.getElementById('user-id');
+        const userInfoDiv = document.getElementById('user-info');
+
+        let isLocked = false;
+        let currentUser = null;
+        const COOLDOWN_MS = 5000;
+
+        async function startApp() {
+            try { await signInAnonymously(auth); } 
+            catch (e) { statusText.innerText = "Access Denied"; }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                userIdSpan.innerText = user.uid.toUpperCase();
+                userInfoDiv.style.opacity = "1";
+                statusText.innerText = "System Ready";
+                statusDot.classList.replace('bg-red-500', 'bg-emerald-500');
+                statusDot.classList.add('shadow-[0_0_10px_rgba(16,185,129,0.8)]');
+                btnTH.disabled = false;
+                btnLight.disabled = false;
+                initializeSync();
+            }
+        });
+
+        async function sendCommand(type, label) {
+            if (isLocked || !currentUser) return;
+            try {
+                await set(syncRef, {
+                    lastCommand: type,
+                    payload: `${label}_REQUESTED`,
+                    timestamp: serverTimestamp(),
+                    triggeredBy: currentUser.uid
+                });
+            } catch (err) { console.error(err); }
+        }
+
+        function initializeSync() {
+            onValue(syncRef, (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                if (data.lastCommand === 'th') {
+                    cmdTH.innerText = data.payload;
+                    cmdLight.innerText = "STANDBY";
+                } else if (data.lastCommand === 'light') {
+                    cmdLight.innerText = data.payload;
+                    cmdTH.innerText = "STANDBY";
+                }
+
+                const now = Date.now();
+                const serverTime = data.timestamp || now;
+                const timeElapsed = now - serverTime;
+
+                if (timeElapsed < COOLDOWN_MS) {
+                    activateLock(COOLDOWN_MS - timeElapsed);
+                }
+            });
+        }
+
+        function activateLock(remaining) {
+            if (isLocked) return;
+            isLocked = true;
+            lockOverlay.classList.remove('hidden');
+            const start = Date.now();
+            const interval = setInterval(() => {
+                const elapsed = Date.now() - start;
+                const percentage = Math.max(0, 100 - (elapsed / remaining * 100));
+                cooldownProgress.style.width = percentage + '%';
+                if (elapsed >= remaining) {
+                    clearInterval(interval);
+                    isLocked = false;
+                    lockOverlay.classList.add('hidden');
+                }
+            }, 50);
+        }
+
+        btnTH.addEventListener('click', () => sendCommand('th', 'CLIMATE_SCAN'));
+        btnLight.addEventListener('click', () => sendCommand('light', 'LUMEN_SYNC'));
+
+        startApp();
+    </script>
+</body>
+</html>
