@@ -10,7 +10,7 @@
         body {
             font-family: 'Inter', sans-serif;
             background: radial-gradient(circle at top right, #064e3b, #020617);
-            overflow: hidden;
+            overflow-x: hidden;
             margin: 0;
         }
 
@@ -52,54 +52,69 @@
         .cooldown-timer {
             transition: width 0.1s linear;
         }
+
+        .protocol-btn {
+            @apply flex flex-col items-center justify-center p-4 rounded-2xl transition-all duration-300 border disabled:opacity-20 disabled:cursor-not-allowed active:scale-95;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(52, 211, 153, 0.3);
+            border-radius: 10px;
+        }
     </style>
 </head>
-<body class="text-slate-200 min-h-screen flex items-center justify-center p-6">
+<body class="text-slate-200 min-h-screen p-4 md:p-8">
     <div class="bg-overlay"></div>
     <div class="scanline"></div>
 
-    <div class="max-w-4xl w-full grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
+    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 relative z-10">
         
         <!-- Sidebar Info -->
-        <div class="lg:col-span-4 flex flex-col justify-between space-y-8">
-            <div>
+        <div class="lg:col-span-4 flex flex-col space-y-6">
+            <div class="glass-panel p-6 rounded-[2rem]">
                 <div class="flex items-center gap-3 mb-4">
                     <div class="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)]">
                         <svg class="w-6 h-6 text-slate-900" fill="currentColor" viewBox="0 0 20 20"><path d="M11 17a1 1 0 01-1-1v-2.17l-1.17 1.17a1 1 0 01-1.42-1.42l3-3a1 1 0 011.42 0l3 3a1 1 0 01-1.42 1.42L12 13.83V16a1 1 0 01-1 1zM7 9a1 1 0 01-1-1V5.83L4.83 7a1 1 0 01-1.42-1.42l3-3a1 1 0 011.42 0l3 3a1 1 0 01-1.42 1.42L8 5.83V8a1 1 0 01-1 1z"></path></svg>
                     </div>
                     <h1 class="text-3xl font-extrabold tracking-tighter text-white">AGRONAUTS<span class="text-emerald-500">.</span></h1>
                 </div>
-                <p class="text-slate-400 text-sm leading-relaxed">
+                <p class="text-slate-400 text-sm leading-relaxed mb-6">
                     Advanced Hydroponic Automation Interface. Real-time satellite-synced command protocols.
                 </p>
+
+                <div class="space-y-4">
+                    <div class="bg-slate-950/50 p-4 rounded-2xl flex items-center gap-4 border border-white/5">
+                        <div id="status-dot" class="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)] transition-all duration-500"></div>
+                        <div>
+                            <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Cloud Connection</p>
+                            <p id="status-text" class="text-sm font-medium text-slate-300">Establishing...</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/50 p-4 rounded-2xl border border-emerald-500/20">
+                        <p class="text-[10px] uppercase tracking-widest text-emerald-500 font-bold mb-1">Global Command State</p>
+                        <div id="global-command-display" class="text-xl font-black font-mono tracking-tighter text-white uppercase">
+                            STANDBY
+                        </div>
+                    </div>
+                </div>
             </div>
-
-            <div class="space-y-4">
-                <div class="glass-panel p-4 rounded-2xl flex items-center gap-4">
-                    <div id="status-dot" class="w-3 h-3 rounded-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)] transition-all duration-500"></div>
-                    <div>
-                        <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Cloud Connection</p>
-                        <p id="status-text" class="text-sm font-medium text-slate-300">Establishing...</p>
-                    </div>
-                </div>
-
-                <div class="glass-panel p-4 rounded-2xl border-emerald-500/20">
-                    <p class="text-[10px] uppercase tracking-widest text-emerald-500 font-bold mb-1">Global Command State</p>
-                    <div id="global-command-display" class="text-xl font-black font-mono tracking-tighter text-white uppercase">
-                        STANDBY
-                    </div>
-                </div>
-                
-                <div id="user-info" class="opacity-0 transition-opacity px-1">
-                    <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Operator UUID</p>
-                    <p id="user-id" class="text-xs font-mono text-emerald-500/80 break-all">...</p>
-                </div>
+            
+            <div id="user-info" class="opacity-0 transition-opacity px-1">
+                <p class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Operator UUID</p>
+                <p id="user-id" class="text-xs font-mono text-emerald-500/80 break-all">...</p>
             </div>
         </div>
 
         <!-- Main Controller -->
-        <div class="lg:col-span-8 relative">
-            <div class="glass-panel rounded-[2.5rem] p-8 lg:p-10 glow-green overflow-hidden relative">
+        <div class="lg:col-span-8 space-y-6">
+            <div class="glass-panel rounded-[2.5rem] p-6 md:p-10 glow-green overflow-hidden relative">
                 
                 <div id="lock-overlay" class="hidden absolute inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center text-center p-6">
                     <div class="mb-6 relative">
@@ -115,25 +130,102 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="group">
-                        <button id="btn-red" disabled class="w-full aspect-square md:aspect-auto md:min-h-[240px] rounded-3xl bg-slate-800/40 border border-slate-700/50 hover:border-red-500/50 hover:bg-slate-800/60 transition-all duration-300 flex flex-col items-center justify-center p-6 disabled:opacity-20 disabled:cursor-not-allowed">
-                            <div class="mb-4 p-4 rounded-2xl bg-red-500/10 text-red-400 group-hover:scale-110 transition-transform">
-                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                            </div>
-                            <span class="text-lg font-bold tracking-tight mb-1">RED Protocol</span>
-                            <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Emergency Vent</span>
-                        </button>
+                <h2 class="text-xs font-black tracking-[0.3em] uppercase text-emerald-500 mb-6 flex items-center gap-2">
+                    <span class="w-8 h-[1px] bg-emerald-500"></span>
+                    Operational Protocols
+                </h2>
+
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
+                    <button id="btn-red" disabled class="protocol-btn bg-red-500/10 border-red-500/20 hover:bg-red-500/20 text-red-400">
+                        <svg class="w-5 h-5 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <span class="text-[10px] font-bold uppercase">Red Protocol</span>
+                    </button>
+
+                    <button id="btn-blue" disabled class="protocol-btn bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20 text-blue-400">
+                        <svg class="w-5 h-5 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                        <span class="text-[10px] font-bold uppercase">Blue Protocol</span>
+                    </button>
+
+                    <button id="btn-temp" disabled class="protocol-btn bg-rose-500/10 border-rose-500/20 hover:bg-rose-500/20 text-rose-400">
+                        <svg class="w-5 h-5 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        <span class="text-[10px] font-bold uppercase">Temperature</span>
+                    </button>
+
+                    <button id="btn-light" disabled class="protocol-btn bg-yellow-500/10 border-yellow-500/20 hover:bg-yellow-500/20 text-yellow-400">
+                        <svg class="w-5 h-5 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <span class="text-[10px] font-bold uppercase">Light Intensity</span>
+                    </button>
+
+                    <button id="btn-vpd" disabled class="protocol-btn bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/20 text-amber-400">
+                        <svg class="w-5 h-5 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span class="text-[10px] font-bold uppercase">VPD Scan</span>
+                    </button>
+
+                    <button id="btn-spectrum" disabled class="protocol-btn bg-purple-500/10 border-purple-500/20 hover:bg-purple-500/20 text-purple-400">
+                        <svg class="w-5 h-5 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
+                        <span class="text-[10px] font-bold uppercase">Spectrum</span>
+                    </button>
+
+                    <button id="btn-soil" disabled class="protocol-btn bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400">
+                        <svg class="w-5 h-5 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        <span class="text-[10px] font-bold uppercase">Soil Data</span>
+                    </button>
+
+                    <button id="btn-atmos" disabled class="protocol-btn bg-sky-500/10 border-sky-500/20 hover:bg-sky-500/20 text-sky-400">
+                        <svg class="w-5 h-5 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path></svg>
+                        <span class="text-[10px] font-bold uppercase">Atmospheric</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-900/50 rounded-2xl p-6 border border-white/5 relative overflow-hidden group">
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1">Climate Telemetry</p>
+                        <div class="flex items-end gap-2">
+                            <span id="temp-display" class="text-3xl font-black text-white">--.-</span>
+                            <span class="text-lg text-rose-400 font-bold mb-1">°C</span>
+                        </div>
+                        <p id="humidity-display" class="text-xs text-slate-400 mt-2 font-mono">Relative Humidity: --%</p>
                     </div>
 
-                    <div class="group">
-                        <button id="btn-blue" disabled class="w-full aspect-square md:aspect-auto md:min-h-[240px] rounded-3xl bg-slate-800/40 border border-slate-700/50 hover:border-blue-500/50 hover:bg-slate-800/60 transition-all duration-300 flex flex-col items-center justify-center p-6 disabled:opacity-20 disabled:cursor-not-allowed">
-                            <div class="mb-4 p-4 rounded-2xl bg-blue-500/10 text-blue-400 group-hover:scale-110 transition-transform">
-                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+                    <div class="bg-slate-900/50 rounded-2xl p-6 border border-white/5 relative overflow-hidden group">
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1">Dew Point Calc</p>
+                        <div class="flex items-end gap-2">
+                            <span id="dewpoint-display" class="text-3xl font-black text-white">--.-</span>
+                            <span class="text-lg text-emerald-400 font-bold mb-1">°C DEW</span>
+                        </div>
+                        <p id="dewpoint-desc" class="text-xs text-slate-400 mt-2 font-mono">Environment Stable</p>
+                    </div>
+
+                    <div class="bg-slate-900/50 rounded-2xl p-6 border border-white/5 relative overflow-hidden group">
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1">Atmos Pressure</p>
+                        <div class="flex items-end gap-2">
+                            <span id="pressure-display" class="text-3xl font-black text-white">---.-</span>
+                            <span class="text-lg text-sky-400 font-bold mb-1">kPa</span>
+                        </div>
+                    </div>
+
+                    <div id="spectrum-box" class="bg-slate-900/50 rounded-2xl p-6 border border-white/5 relative overflow-hidden group">
+                        <p class="text-[10px] uppercase font-bold tracking-widest text-slate-500 mb-1">RGB Spectrum</p>
+                        <div class="flex gap-4 mt-2">
+                            <div class="flex flex-col items-center">
+                                <span id="r-val" class="text-sm font-bold text-red-500">0</span>
+                                <div class="w-4 h-12 bg-slate-800 rounded-full relative overflow-hidden">
+                                    <div id="r-bar" class="absolute bottom-0 w-full bg-red-500 transition-all" style="height: 0%"></div>
+                                </div>
                             </div>
-                            <span class="text-lg font-bold tracking-tight mb-1">BLUE Protocol</span>
-                            <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Nutrient Pulse</span>
-                        </button>
+                            <div class="flex flex-col items-center">
+                                <span id="g-val" class="text-sm font-bold text-green-500">0</span>
+                                <div class="w-4 h-12 bg-slate-800 rounded-full relative overflow-hidden">
+                                    <div id="g-bar" class="absolute bottom-0 w-full bg-green-500 transition-all" style="height: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-center">
+                                <span id="b-val" class="text-sm font-bold text-blue-500">0</span>
+                                <div class="w-4 h-12 bg-slate-800 rounded-full relative overflow-hidden">
+                                    <div id="b-bar" class="absolute bottom-0 w-full bg-blue-500 transition-all" style="height: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -141,9 +233,8 @@
                     <div class="flex gap-4">
                         <div class="h-2 w-8 bg-emerald-500 rounded-full opacity-50"></div>
                         <div class="h-2 w-8 bg-slate-700 rounded-full"></div>
-                        <div class="h-2 w-8 bg-slate-700 rounded-full"></div>
                     </div>
-                    <span class="text-[10px] font-bold text-slate-600 tracking-[0.3em] uppercase">Control Node: Online</span>
+                    <span class="text-[10px] font-bold text-slate-600 tracking-[0.3em] uppercase">Control Node: MKR-1010</span>
                 </div>
             </div>
         </div>
@@ -154,7 +245,6 @@
         import { getFirestore, doc, setDoc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
 
-        // Project: agronauts-c8284
         const firebaseConfig = {
             apiKey: "AIzaSyCCx0UKQeYKOcNooAGzaaKvU-U_l3mDDo8",
             authDomain: "agronauts-c8284.firebaseapp.com",
@@ -175,14 +265,37 @@
         const statusText = document.getElementById('status-text');
         const userIdSpan = document.getElementById('user-id');
         const userInfoDiv = document.getElementById('user-info');
-        const btnRed = document.getElementById('btn-red');
-        const btnBlue = document.getElementById('btn-blue');
         const globalCommandDisplay = document.getElementById('global-command-display');
         const lockOverlay = document.getElementById('lock-overlay');
         const cooldownProgress = document.getElementById('cooldown-progress');
 
+        const displays = {
+            temp: document.getElementById('temp-display'),
+            hum: document.getElementById('humidity-display'),
+            dew: document.getElementById('dewpoint-display'),
+            dewDesc: document.getElementById('dewpoint-desc'),
+            pressure: document.getElementById('pressure-display'),
+            rVal: document.getElementById('r-val'),
+            gVal: document.getElementById('g-val'),
+            bVal: document.getElementById('b-val'),
+            rBar: document.getElementById('r-bar'),
+            gBar: document.getElementById('g-bar'),
+            bBar: document.getElementById('b-bar')
+        };
+
+        const buttons = {
+            red: document.getElementById('btn-red'),
+            blue: document.getElementById('btn-blue'),
+            temp: document.getElementById('btn-temp'),
+            light: document.getElementById('btn-light'),
+            vpd: document.getElementById('btn-vpd'),
+            spectrum: document.getElementById('btn-spectrum'),
+            soil: document.getElementById('btn-soil'),
+            atmos: document.getElementById('btn-atmos')
+        };
+
         let isLocallyLocked = false;
-        const COOLDOWN_MS = 3000;
+        const COOLDOWN_MS = 2500;
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -197,68 +310,74 @@
 
         async function initSync() {
             try {
-                // Initial heartbeat
-                await setDoc(commandDocRef, { 
-                    status: "ACTIVE",
-                    lastBoot: serverTimestamp() 
-                }, { merge: true });
-
-                statusText.innerText = "Satellite Verified";
+                await setDoc(commandDocRef, { status: "ACTIVE" }, { merge: true });
+                statusText.innerText = "Cloud Active";
                 statusDot.className = "w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]";
-                btnRed.disabled = false;
-                btnBlue.disabled = false;
+                Object.values(buttons).forEach(btn => btn.disabled = false);
 
                 onSnapshot(commandDocRef, (snap) => {
                     if (snap.exists()) {
                         const data = snap.data();
                         globalCommandDisplay.innerText = data.currentCommand || 'READY';
+                        
+                        if(data.temperature) displays.temp.innerText = parseFloat(data.temperature).toFixed(1);
+                        if(data.humidity) displays.hum.innerText = `Relative Humidity: ${parseInt(data.humidity)}%`;
+                        if(data.pressure) displays.pressure.innerText = parseFloat(data.pressure).toFixed(1);
+                        
+                        if(data.temperature && data.humidity) {
+                            const t = parseFloat(data.temperature);
+                            const h = parseFloat(data.humidity);
+                            const alpha = ((17.27 * t) / (237.7 + t)) + Math.log(h/100.0);
+                            const dew = (237.7 * alpha) / (17.27 - alpha);
+                            displays.dew.innerText = dew.toFixed(1);
+                            displays.dewDesc.innerText = t - dew < 3 ? "WARNING: CONDENSATION" : "ENVIRONMENT STABLE";
+                        }
+
+                        if(data.spectrum) {
+                            const {r, g, b} = data.spectrum;
+                            displays.rVal.innerText = r;
+                            displays.gVal.innerText = g;
+                            displays.bVal.innerText = b;
+                            displays.rBar.style.height = `${Math.min(100, (r/255)*100)}%`;
+                            displays.gBar.style.height = `${Math.min(100, (g/255)*100)}%`;
+                            displays.bBar.style.height = `${Math.min(100, (b/255)*100)}%`;
+                        }
                     }
-                }, (err) => {
-                    console.error("Sync Error:", err);
-                    statusText.innerText = "Access Denied";
-                    statusDot.className = "w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]";
                 });
-            } catch (err) {
-                console.error("Connection Error:", err);
-                statusText.innerText = "Connection Failed";
-            }
+            } catch (err) { statusText.innerText = "Offline"; }
         }
 
         async function sendCommand(cmd) {
             if (isLocallyLocked) return;
-            startLock();
-            try {
-                await setDoc(commandDocRef, {
-                    currentCommand: cmd,
-                    updatedAt: new Date().toISOString()
-                }, { merge: true });
-            } catch (e) {
-                stopLock();
-            }
-        }
-
-        function startLock() {
             isLocallyLocked = true;
             lockOverlay.classList.remove('hidden');
             let start = Date.now();
             let timer = setInterval(() => {
                 let elapsed = Date.now() - start;
-                let pct = 100 - (elapsed / COOLDOWN_MS * 100);
-                cooldownProgress.style.width = Math.max(0, pct) + '%';
+                cooldownProgress.style.width = (100 - (elapsed/COOLDOWN_MS*100)) + '%';
                 if (elapsed >= COOLDOWN_MS) {
                     clearInterval(timer);
-                    stopLock();
+                    isLocallyLocked = false;
+                    lockOverlay.classList.add('hidden');
                 }
             }, 30);
+
+            try {
+                await setDoc(commandDocRef, {
+                    currentCommand: cmd,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch (e) {}
         }
 
-        function stopLock() {
-            isLocallyLocked = false;
-            lockOverlay.classList.add('hidden');
-        }
-
-        btnRed.addEventListener('click', () => sendCommand('RED'));
-        btnBlue.addEventListener('click', () => sendCommand('BLUE'));
+        buttons.red.onclick = () => sendCommand('RED_PROTOCOL');
+        buttons.blue.onclick = () => sendCommand('BLUE_PROTOCOL');
+        buttons.temp.onclick = () => sendCommand('TEMP_SCAN');
+        buttons.light.onclick = () => sendCommand('LIGHT_SCAN');
+        buttons.vpd.onclick = () => sendCommand('VPD_ANALYSIS');
+        buttons.spectrum.onclick = () => sendCommand('RGB_SPECTRUM');
+        buttons.soil.onclick = () => sendCommand('SOIL_MOISTURE');
+        buttons.atmos.onclick = () => sendCommand('PRESSURE_SCAN');
     </script>
 </body>
 </html>
