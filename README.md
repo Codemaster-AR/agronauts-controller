@@ -1,8 +1,3 @@
-You’re absolutely right—that final step is the most important part to actually see it in action! I’ve integrated it into a "Usage" section at the end so users know exactly where to go once the code is running.
-
-Here is the completed, polished **README.md**:
-
----
 
 # 🌿 Agronauts Controller
 
