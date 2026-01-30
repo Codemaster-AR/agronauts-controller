@@ -346,7 +346,7 @@ void updateLEDs(uint16_t color) {
 
 After uploading the code to your MKR 1010, you can remotely control and monitor your system:
 
-1. Visit the dashboard at: [codemaster-ar.github.io/agronauts-controller](codemaster-ar.github.io/agronauts-controller)
+1. Visit the dashboard at: [https://codemaster-ar.github.io/agronauts-controller/](https://codemaster-ar.github.io/agronauts-controller/)
 2. Click on **Main Model Control**.
 3. From here, you can send live commands from any device connected to the internet to your hardware and view the real-time sensor outputs!
 
