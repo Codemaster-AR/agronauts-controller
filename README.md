@@ -352,4 +352,5 @@ After uploading the code to your MKR 1010, you can remotely control and monitor 
 
 ---
 
-Would you like me to add a troubleshooting section for common WiFi or library errors?
+### Are you the owner?
+Private repository link: [https://github.com/Codemaster-AR/agronauts-private](https://github.com/Codemaster-AR/agronauts-private)
