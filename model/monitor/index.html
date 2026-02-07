@@ -1,0 +1,370 @@
+/* * AGRONAUTS CONTROL SYSTEM - MKR Direct REST + ThingSpeak Edition
+ * Combined for MKR WiFi 1010 + IoT Carrier Rev2
+ */
+
+#include <Arduino.h>
+#include <WiFiNINA.h>
+#include <Arduino_MKRIoTCarrier.h>
+#include <ArduinoJson.h>
+#include <ThingSpeak.h>
+#include <math.h>
+
+// --- WiFi Credentials ---
+char SSID[] = "Milky way"; 
+char PASS[] = "pbdys25701";
+
+// --- ThingSpeak Credentials ---
+unsigned long myChannelNumber = 3254588;
+const char * myWriteAPIKey = "YIPXD4IMUVM0MYR5";
+
+// --- Firebase Credentials ---
+const char* host = "firestore.googleapis.com";
+const char* projectId = "agronauts-c8284"; 
+const char* appId = "agronauts-main"; 
+
+// --- Objects ---
+MKRIoTCarrier carrier;
+WiFiSSLClient firebaseClient; // Secure client for Firebase
+WiFiClient tsClient;         // Standard client for ThingSpeak
+
+// --- Constants & Variables ---
+#define C_DEEP_FOREST 0x0100 
+#define C_VIVID_LEAF  0x07E0 
+#define C_ICE_BLUE    0x5DFF 
+#define C_FIRE_ORANGE 0xFD20 
+#define C_DANGER_RED  0xF800 
+#define C_SOFT_GLOW   0xFFFF 
+#define C_PURPLE      0x780F
+#define C_BLACK       0x0000
+
+unsigned long lastFirebasePoll = 0;
+const unsigned long firebaseInterval = 2500; 
+
+unsigned long lastThingSpeakUpdate = 0;
+const unsigned long thingSpeakInterval = 17000; // Safe 17s for Free Tier
+
+String lastCommand = "";
+unsigned long lastFlashTime = 0;
+bool flashState = false;
+
+// Function Prototypes
+void runSafetyMonitor();
+void processCommand(String currentCmd);
+String getFirestoreCommand();
+void drawCircularFrame(String label, uint16_t color);
+void displayClimateLive();
+void displayVPDLive();
+void displayLightLive();
+void displaySpectrum();
+void displaySoilLive();
+void displayPressureLive();
+void displayProtocol(String name, uint16_t color);
+void drawModernHome();
+void drawBootScreen(String msg);
+void updateLEDs(uint16_t color);
+
+void setup() {
+  Serial.begin(115200);
+  unsigned long startSerial = millis();
+  while (!Serial && millis() - startSerial < 5000); 
+  
+  CARRIER_CASE = false;
+  if (!carrier.begin()) { 
+    Serial.println("Carrier Init Fail");
+    while (1); 
+  }
+
+  carrier.display.init(240, 240);
+  carrier.display.setRotation(0);
+  drawBootScreen("WIFI CONNECTING...");
+  
+  Serial.print("Connecting to: ");
+  Serial.println(SSID);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    WiFi.begin(SSID, PASS);
+    Serial.print(".");
+    delay(5000); 
+  }
+  
+  Serial.println("\nConnected");
+  drawBootScreen("SYSTEM ONLINE");
+  delay(1000);
+  drawModernHome();
+
+  ThingSpeak.begin(tsClient);
+}
+
+void loop() {
+  // 1. Maintain Connection
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("WiFi Lost. Reconnecting...");
+    WiFi.begin(SSID, PASS);
+    delay(2000);
+    return;
+  }
+
+  // 2. Safety Monitor (Relay/Buzzer)
+  runSafetyMonitor();
+
+  // 3. Firebase Polling (Every 2.5s)
+  if (millis() - lastFirebasePoll > firebaseInterval) {
+    String cmd = getFirestoreCommand();
+    Serial.print("Firestore Status: ");
+    Serial.println(cmd);
+    if (cmd != "CONN_ERR" && cmd != "PARSE_ERR" && cmd != "EMPTY_RES" && cmd != "NO_FIELD") {
+      processCommand(cmd);
+    }
+    lastFirebasePoll = millis();
+  }
+
+  // 4. ThingSpeak Reporting (Every 17s)
+  if (millis() - lastThingSpeakUpdate > thingSpeakInterval) {
+    Serial.println("Reading Sensors for ThingSpeak...");
+    
+    float temperature = carrier.Env.readTemperature();
+    float humidity    = carrier.Env.readHumidity();
+    float pressure    = carrier.Pressure.readPressure(); 
+    
+    // Light
+    int r, g, b, none;
+    while(!carrier.Light.colorAvailable());
+    carrier.Light.readColor(r, g, b, none);
+    float lightIntensity = none; 
+
+    // VPD Calculation
+    float es = 0.611 * exp((17.27 * temperature) / (temperature + 237.3));
+    float ea = es * (humidity / 100.0);
+    float vpd = es - ea;
+
+    ThingSpeak.setField(1, temperature);
+    ThingSpeak.setField(2, humidity);
+    ThingSpeak.setField(3, vpd);           
+    ThingSpeak.setField(4, pressure);      
+    ThingSpeak.setField(5, lightIntensity); 
+
+    int tsResponse = ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+    if (tsResponse == 200) {
+      Serial.println("ThingSpeak Update Successful!");
+    } else {
+      Serial.print("ThingSpeak Error: ");
+      Serial.println(tsResponse);
+    }
+    lastThingSpeakUpdate = millis();
+  }
+
+  // 5. UI Updates
+  if (lastCommand == "TEMP_SCAN") displayClimateLive();
+  else if (lastCommand == "LIGHT_SCAN") displayLightLive();
+  else if (lastCommand == "VPD_ANALYSIS") displayVPDLive();
+  else if (lastCommand == "RGB_SPECTRUM") displaySpectrum();
+  else if (lastCommand == "SOIL_MOISTURE") displaySoilLive();
+  else if (lastCommand == "PRESSURE_SCAN") displayPressureLive();
+  else if (lastCommand == "RED" || lastCommand == "RED_PROTOCOL") displayProtocol("RED ALERT", C_DANGER_RED);
+  else if (lastCommand == "BLUE" || lastCommand == "BLUE_PROTOCOL") displayProtocol("BLUE MODE", C_ICE_BLUE);
+
+  // 6. Buttons
+  carrier.Buttons.update();
+  if (carrier.Buttons.getTouch(TOUCH2)) {
+    lastCommand = "HOME";
+    drawModernHome();
+    delay(300);
+  }
+}
+
+// --- HELPER FUNCTIONS ---
+
+void runSafetyMonitor() {
+  float currentTemp = carrier.Env.readTemperature();
+  if (currentTemp > 25.5) {
+    carrier.Relay1.open(); 
+  } else {
+    carrier.Relay1.close();
+  }
+
+  if (currentTemp >= 27.0) {
+    carrier.Buzzer.beep(2000, 50);
+    if (millis() - lastFlashTime > 500) {
+      flashState = !flashState;
+      if (flashState) carrier.leds.fill(carrier.leds.Color(150, 0, 0), 0, 5);
+      else carrier.leds.fill(0, 0, 5);
+      carrier.leds.show();
+      lastFlashTime = millis();
+    }
+  }
+}
+
+void processCommand(String currentCmd) {
+  if (currentCmd != lastCommand && currentCmd != "") {
+    lastCommand = currentCmd;
+    if (currentCmd == "HOME" || currentCmd == "CLEAR" || currentCmd == "READY") {
+      drawModernHome();
+    }
+  }
+}
+
+String getFirestoreCommand() {
+  firebaseClient.stop(); 
+  if (firebaseClient.connect(host, 443)) {
+    String url = "/v1/projects/" + String(projectId) + "/databases/(default)/documents/artifacts/" + String(appId) + "/public/data/controls/state";
+    firebaseClient.print("GET " + url + " HTTP/1.1\r\nHost: " + String(host) + "\r\nAccept: application/json\r\nConnection: close\r\n\r\n");
+    
+    unsigned long startHeader = millis();
+    while (firebaseClient.connected()) {
+      if (millis() - startHeader > 4000) break;
+      if (firebaseClient.readStringUntil('\n') == "\r") break; 
+    }
+    
+    String response = "";
+    while (firebaseClient.available()) {
+      response += (char)firebaseClient.read();
+      if (response.length() > 2500) break; 
+    }
+    
+    int firstBrace = response.indexOf('{');
+    int lastBrace = response.lastIndexOf('}');
+    if (firstBrace == -1 || lastBrace == -1) return "EMPTY_RES";
+    response = response.substring(firstBrace, lastBrace + 1);
+    
+    StaticJsonDocument<1536> doc; 
+    DeserializationError error = deserializeJson(doc, response);
+    if (!error) {
+      if (doc.containsKey("fields") && doc["fields"].containsKey("currentCommand")) {
+        return doc["fields"]["currentCommand"]["stringValue"].as<String>();
+      }
+    }
+  }
+  return "CONN_ERR";
+}
+
+// --- DISPLAY FUNCTIONS (FIXED) ---
+
+void displayVPDLive() {
+  float t = carrier.Env.readTemperature();
+  float h = carrier.Env.readHumidity();
+  // Using the corrected ThingSpeak VPD Math
+  float es = 0.611 * exp((17.27 * t) / (t + 237.3));
+  float ea = es * (h / 100.0);
+  float vpd = es - ea;
+
+  drawCircularFrame("VPD SCAN", C_FIRE_ORANGE);
+  carrier.display.setCursor(45, 100); 
+  carrier.display.setTextSize(5);
+  carrier.display.setTextColor(C_SOFT_GLOW);
+  carrier.display.print(vpd, 1); 
+  carrier.display.setTextSize(2);
+  carrier.display.print(" kPa");
+  if(t < 30.0) updateLEDs(C_FIRE_ORANGE);
+}
+
+void displayPressureLive() {
+  float pressure = carrier.Pressure.readPressure(); // Fixed member access
+  drawCircularFrame("PRESSURE", C_ICE_BLUE);
+  carrier.display.setCursor(45, 105);
+  carrier.display.setTextSize(3);
+  carrier.display.setTextColor(C_SOFT_GLOW);
+  carrier.display.print(pressure, 1);
+  carrier.display.print(" kPa");
+  if(carrier.Env.readTemperature() < 30.0) updateLEDs(C_ICE_BLUE);
+}
+
+void displayClimateLive() {
+  float temp = carrier.Env.readTemperature();
+  float hum = carrier.Env.readHumidity();
+  drawCircularFrame("CLIMATE", C_VIVID_LEAF);
+  carrier.display.setCursor(35, 100);
+  carrier.display.setTextColor(C_SOFT_GLOW);
+  carrier.display.setTextSize(5);
+  carrier.display.print(temp, 1);
+  carrier.display.setTextSize(3);
+  carrier.display.print(" C");
+  carrier.display.setCursor(50, 160);
+  carrier.display.setTextColor(C_ICE_BLUE);
+  carrier.display.setTextSize(2);
+  carrier.display.print("Humidity: ");
+  carrier.display.print((int)hum);
+  carrier.display.print("%");
+  if(temp < 30.0) updateLEDs(C_VIVID_LEAF);
+}
+
+void displayLightLive() {
+  int r, g, b, none;
+  while(!carrier.Light.colorAvailable());
+  carrier.Light.readColor(r, g, b, none);
+  drawCircularFrame("LUMINANCE", C_FIRE_ORANGE);
+  carrier.display.setCursor(60, 100);
+  carrier.display.setTextSize(5);
+  carrier.display.setTextColor(C_SOFT_GLOW);
+  carrier.display.print(none);
+  if(carrier.Env.readTemperature() < 30.0) updateLEDs(C_FIRE_ORANGE);
+}
+
+void displaySpectrum() {
+  drawCircularFrame("SPECTRUM", C_PURPLE); 
+  int r, g, b, none; 
+  while(!carrier.Light.colorAvailable());
+  carrier.Light.readColor(r, g, b, none);
+  carrier.display.setTextSize(2);
+  carrier.display.setCursor(60, 85); carrier.display.setTextColor(C_DANGER_RED);
+  carrier.display.print("RED: "); carrier.display.println(r);
+  carrier.display.setCursor(60, 115); carrier.display.setTextColor(C_VIVID_LEAF);
+  carrier.display.print("GRN: "); carrier.display.println(g);
+  carrier.display.setCursor(60, 145); carrier.display.setTextColor(C_ICE_BLUE);
+  carrier.display.print("BLU: "); carrier.display.println(b);
+  if(carrier.Env.readTemperature() < 30.0) updateLEDs(C_PURPLE);
+}
+
+void displaySoilLive() {
+  drawCircularFrame("SOIL MOIST", C_VIVID_LEAF);
+  carrier.display.setCursor(60, 100);
+  carrier.display.setTextSize(5);
+  carrier.display.setTextColor(C_SOFT_GLOW);
+  carrier.display.print("72%"); 
+  if(carrier.Env.readTemperature() < 30.0) updateLEDs(C_VIVID_LEAF);
+}
+
+void displayProtocol(String name, uint16_t color) {
+  drawCircularFrame("SYSTEM ALERT", color);
+  carrier.display.setCursor(40, 110);
+  carrier.display.setTextSize(2);
+  carrier.display.setTextColor(C_SOFT_GLOW);
+  carrier.display.print(name);
+  if(carrier.Env.readTemperature() < 30.0) updateLEDs(color);
+}
+
+void drawCircularFrame(String label, uint16_t color) {
+  carrier.display.fillScreen(C_BLACK);
+  carrier.display.drawCircle(120, 120, 119, color);
+  carrier.display.drawCircle(120, 120, 110, C_DEEP_FOREST);
+  carrier.display.setCursor(45, 45);
+  carrier.display.setTextColor(color);
+  carrier.display.setTextSize(2);
+  carrier.display.print(label);
+}
+
+void drawModernHome() {
+  carrier.leds.fill(0, 0, 5);
+  carrier.leds.show();
+  carrier.display.fillScreen(C_BLACK);
+  carrier.display.drawCircle(120, 120, 115, C_DEEP_FOREST);
+  carrier.display.setCursor(55, 105);
+  carrier.display.setTextColor(C_VIVID_LEAF);
+  carrier.display.setTextSize(3);
+  carrier.display.print("AGRI-OS");
+}
+
+void drawBootScreen(String msg) {
+  carrier.display.fillScreen(C_BLACK);
+  carrier.display.setCursor(30, 110);
+  carrier.display.setTextColor(C_VIVID_LEAF);
+  carrier.display.setTextSize(2);
+  carrier.display.println(msg);
+}
+
+void updateLEDs(uint16_t color) {
+  uint8_t r = (color >> 11) << 3;
+  uint8_t g = ((color >> 5) & 0x3F) << 2;
+  uint8_t b = (color & 0x1F) << 3;
+  carrier.leds.fill(carrier.leds.Color(r/4, g/4, b/4), 0, 5);
+  carrier.leds.show();
+}
