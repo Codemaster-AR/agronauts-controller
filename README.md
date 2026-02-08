@@ -351,6 +351,12 @@ After uploading the code to your MKR 1010, you can remotely control and monitor 
 3. From here, you can send live commands from any device connected to the internet to your hardware and view the real-time sensor outputs!
 
 ---
+## Monitor
+
+Regarding the monitor, we used Thingspeak. 
+Check this out for more details: [https://github.com/Codemaster-AR/agronauts-controller/blob/main/Using_Thingspeak.MD](https://github.com/Codemaster-AR/agronauts-controller/blob/main/Using_Thingspeak.MD)
+
+___
 
 ## Home Repository:
 [https://github.com/codemaster-ar/agronauts](https://github.com/codemaster-ar/agronauts)
