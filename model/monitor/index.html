@@ -87,6 +87,12 @@
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #020617; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        #time_is_span {
+            font-family: 'Plus Jakarta Sans', monospace !important;
+            font-weight: 800 !important;
+            color: #60a5fa !important;
+        }
     </style>
 </head>
 <body class="text-slate-200 p-4 md:p-8 min-h-screen">
@@ -120,9 +126,16 @@
                     <i data-lucide="eraser" class="w-3.5 h-3.5"></i> Clear Cache
                 </button>
                 <div class="h-8 w-[1px] bg-white/5"></div>
-                <div class="text-right px-2">
-                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Live Sync</p>
+                <div class="text-right px-2 min-w-[80px]">
+                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Last Sync</p>
                     <p id="lastUpdate" class="text-sm text-emerald-400 font-mono font-bold italic">--:--:--</p>
+                </div>
+                <div class="h-8 w-[1px] bg-white/5"></div>
+                <div class="text-right px-2 min-w-[100px]">
+                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Live Clock</p>
+                    <div id="liveClock" class="text-sm min-h-[1.25rem]">
+                        <span id="time_is_span" class="font-mono font-bold text-blue-400 italic tracking-tight">00:00:00</span>
+                    </div>
                 </div>
                 <button onclick="fetchData()" id="refreshBtn" class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-all shadow-lg disabled:opacity-50">
                     <i data-lucide="refresh-cw" id="refreshIcon" class="w-5 h-5 text-emerald-500"></i>
@@ -370,11 +383,20 @@
                     document.getElementById('field3').textContent = latest.field3 ? parseFloat(latest.field3).toFixed(2) : '--';
                     document.getElementById('field4').textContent = latest.field4 ? parseFloat(latest.field4).toFixed(1) : '--';
                     document.getElementById('field5').textContent = latest.field5 ? Math.round(latest.field5) : '--';
-                    lastUpdateEl.textContent = new Date().toLocaleTimeString([], { hour12: false });
+                    
+                    const syncTime = new Date();
+                    const h = String(syncTime.getHours()).padStart(2, '0');
+                    const m = String(syncTime.getMinutes()).padStart(2, '0');
+                    const s = String(syncTime.getSeconds()).padStart(2, '0');
+                    lastUpdateEl.textContent = `${h}:${m}:${s}`;
+                    
                     errorAlert.classList.add('hidden');
                     const labels = result.feeds.map(f => {
                         const date = new Date(f.created_at);
-                        return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
+                        const month = date.toLocaleDateString([], { month: 'short' });
+                        const day = date.toLocaleDateString([], { day: 'numeric' });
+                        const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                        return `${month} ${day}, ${time}`;
                     });
                     trendChart.data.labels = labels;
                     trendChart.data.datasets[0].data = result.feeds.map(f => parseFloat(f.field1));
@@ -395,6 +417,24 @@
             }
         }
 
+        // High-Precision Self-Correcting Clock
+        function syncClock() {
+            const clockEl = document.getElementById('time_is_span');
+            if (!clockEl) return;
+            
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            
+            clockEl.textContent = `${h}:${m}:${s}`;
+            
+            // Calculate ms remaining until the start of the next second
+            // This eliminates the ~500ms-999ms lag caused by fixed setIntervals
+            const msToNextSecond = 1000 - now.getMilliseconds();
+            setTimeout(syncClock, msToNextSecond);
+        }
+
         window.onload = () => {
             lucide.createIcons();
             resizeCanvas();
@@ -402,6 +442,11 @@
             animateParticles();
             initChart();
             fetchData();
+            
+            // Initial precision clock call
+            syncClock();
+            
+            // Telemetry sync
             setInterval(fetchData, 20000);
         };
     </script>
