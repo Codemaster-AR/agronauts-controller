@@ -11,8 +11,8 @@
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         
         :root {
-            --glass: rgba(15, 23, 42, 0.75);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass: rgba(15, 23, 42, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.12);
             --emerald-glow: rgba(16, 185, 129, 0.4);
         }
 
@@ -45,292 +45,394 @@
             border: 1px solid var(--glass-border);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
             position: relative;
+            overflow: hidden;
+        }
+
+        .liquid-glass::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.05),
+                transparent
+            );
+            transition: 0.5s;
+        }
+
+        .liquid-glass:hover::before {
+            left: 100%;
         }
 
         .glow-emerald { box-shadow: 0 0 20px var(--emerald-glow); }
         
-        .chat-bubble {
+        .animate-liquid {
+            animation: liquid-move 10s infinite alternate;
+        }
+
+        @keyframes liquid-move {
+            0% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+            50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+            100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+        }
+
+        .chart-container canvas {
+            filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.1));
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        #time_is_span {
+            font-family: 'Plus Jakarta Sans', monospace !important;
+            font-weight: 800 !important;
+            color: #60a5fa !important;
+        }
+
+        .ai-loading-dots::after {
+            content: '.';
+            animation: dots 1.5s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60% { content: '...'; }
+            80%, 100% { content: ''; }
+        }
+
+        /* Chatbot UI Styles */
+        #bot-messages::-webkit-scrollbar { width: 3px; }
+        .bot-bubble {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 2px solid #10b981;
+            padding: 10px 14px;
+            border-radius: 0 12px 12px 12px;
+            font-size: 0.75rem;
+            color: #cbd5e1;
             max-width: 85%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 13px;
-            line-height: 1.5;
-            margin-bottom: 12px;
         }
-
-        .bubble-ai {
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid rgba(255,255,255,0.05);
-            align-self: flex-start;
+        .user-bubble {
+            background: rgba(59, 130, 246, 0.1);
+            border-right: 2px solid #3b82f6;
+            padding: 10px 14px;
+            border-radius: 12px 0 12px 12px;
+            font-size: 0.75rem;
             color: #e2e8f0;
-        }
-
-        .bubble-user {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            align-self: flex-end;
+            max-width: 85%;
             margin-left: auto;
-            font-weight: 500;
         }
-
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-
-        @keyframes typing {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-        .typing-dot { animation: typing 1s infinite; }
     </style>
 </head>
 <body class="text-slate-200 p-4 md:p-8 min-h-screen">
 
     <canvas id="particle-canvas"></canvas>
 
+    <div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/5 blur-[120px] rounded-full"></div>
+
     <div class="max-w-6xl mx-auto relative z-10">
         <header class="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
                 <div class="flex items-center gap-3 mb-2">
-                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 tracking-widest uppercase">System Active</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 tracking-widest uppercase">Telemetry System</span>
                 </div>
-                <h1 class="text-4xl font-extrabold text-white tracking-tighter flex items-center gap-4">
-                    AGRI-OS <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">LIVE</span>
+                <h1 class="text-5xl font-extrabold text-white tracking-tighter flex items-center gap-4">
+                    <div class="relative">
+                        <div class="w-4 h-4 bg-emerald-500 rounded-full animate-pulse glow-emerald"></div>
+                        <div class="absolute inset-0 w-4 h-4 bg-emerald-400 rounded-full animate-ping opacity-25"></div>
+                    </div>
+                    AGRI-OS <span class="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500 uppercase">Live</span>
                 </h1>
+                <p class="text-slate-500 mt-2 flex items-center gap-2 text-sm font-medium">
+                    <i data-lucide="zap" class="w-4 h-4 text-yellow-500/70"></i> 
+                    Core Node: <span class="text-slate-300 font-mono">3254588</span>
+                </p>
             </div>
 
             <div class="flex items-center gap-4 bg-slate-900/40 p-2 rounded-2xl border border-white/5 backdrop-blur-md">
-                <div class="text-right px-2">
-                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-widest">Live Clock</p>
-                    <span id="time_is_span" class="font-mono font-bold text-blue-400 italic">00:00:00</span>
+                <button onclick="clearGraph()" class="px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl hover:bg-red-500/10 hover:border-red-500/50 transition-all text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-red-400 flex items-center gap-2">
+                    <i data-lucide="eraser" class="w-3.5 h-3.5"></i> Clear Cache
+                </button>
+                <div class="h-8 w-[1px] bg-white/5"></div>
+                <div class="text-right px-2 min-w-[80px]">
+                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Last Sync</p>
+                    <p id="lastUpdate" class="text-sm text-emerald-400 font-mono font-bold italic">--:--:--</p>
                 </div>
-                <button onclick="fetchData()" id="refreshBtn" class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-all">
-                    <i data-lucide="refresh-cw" id="refreshIcon" class="w-5 h-5 text-emerald-400"></i>
+                <div class="h-8 w-[1px] bg-white/5"></div>
+                <div class="text-right px-2 min-w-[100px]">
+                    <p class="text-[10px] text-slate-500 uppercase font-black tracking-[0.2em]">Live Clock</p>
+                    <div id="liveClock" class="text-sm min-h-[1.25rem]">
+                        <span id="time_is_span" class="font-mono font-bold text-blue-400 italic tracking-tight">00:00:00</span>
+                    </div>
+                </div>
+                <button onclick="fetchData()" id="refreshBtn" class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-all shadow-lg disabled:opacity-50">
+                    <i data-lucide="refresh-cw" id="refreshIcon" class="w-5 h-5 text-emerald-500"></i>
                 </button>
             </div>
         </header>
 
-        <!-- Sensor Grid -->
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-10">
-            <div class="liquid-glass rounded-2xl p-5 border-orange-500/20">
-                <h3 class="text-slate-500 text-[10px] font-bold uppercase mb-2">Temp</h3>
-                <p class="text-3xl font-black text-white"><span id="field1">--</span><small class="text-sm text-orange-500 ml-1">°C</small></p>
+        <div id="errorAlert" class="hidden mb-8 bg-red-950/40 border border-red-500/30 p-4 rounded-2xl text-red-200 flex items-center gap-3 backdrop-blur-xl">
+            <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+            <p id="errorMessage" class="text-sm font-semibold"></p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            <!-- Ambient Temp -->
+            <div class="liquid-glass rounded-[2rem] p-8 transition-all hover:-translate-y-2 group">
+                <div class="absolute top-[-20%] right-[-10%] w-32 h-32 bg-orange-500/5 blur-3xl group-hover:bg-orange-500/10 transition-all"></div>
+                <div class="flex justify-between items-start mb-6">
+                    <div class="p-4 rounded-2xl bg-gradient-to-br from-orange-500/20 to-orange-600/5 border border-orange-500/20 shadow-inner">
+                        <i data-lucide="thermometer" class="text-orange-400 w-7 h-7"></i>
+                    </div>
+                    <span class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Field 01</span>
+                </div>
+                <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Ambient Temp</h3>
+                <div class="flex items-baseline gap-3">
+                    <span id="field1" class="text-5xl font-black text-white tracking-tighter">--</span>
+                    <span class="text-orange-500/70 font-black text-xl italic">°C</span>
+                </div>
             </div>
-            <div class="liquid-glass rounded-2xl p-5 border-blue-500/20">
-                <h3 class="text-slate-500 text-[10px] font-bold uppercase mb-2">Humidity</h3>
-                <p class="text-3xl font-black text-white"><span id="field2">--</span><small class="text-sm text-blue-500 ml-1">%</small></p>
+
+            <!-- Humidity -->
+            <div class="liquid-glass rounded-[2rem] p-8 transition-all hover:-translate-y-2 group">
+                <div class="absolute top-[-20%] right-[-10%] w-32 h-32 bg-blue-500/5 blur-3xl group-hover:bg-blue-500/10 transition-all"></div>
+                <div class="flex justify-between items-start mb-6">
+                    <div class="p-4 rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-600/5 border border-blue-500/20 shadow-inner">
+                        <i data-lucide="droplets" class="text-blue-400 w-7 h-7"></i>
+                    </div>
+                    <span class="text-slate-500 text-[10px] font-bold uppercase tracking-widest text-slate-300">Field 02</span>
+                </div>
+                <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Humidity</h3>
+                <div class="flex items-baseline gap-3">
+                    <span id="field2" class="text-5xl font-black text-white tracking-tighter">--</span>
+                    <span class="text-blue-500/70 font-black text-xl italic">%</span>
+                </div>
             </div>
-            <div class="liquid-glass rounded-2xl p-5 border-purple-500/20">
-                <h3 class="text-slate-500 text-[10px] font-bold uppercase mb-2">VPD</h3>
-                <p class="text-3xl font-black text-white"><span id="field3">--</span><small class="text-sm text-purple-500 ml-1">kPa</small></p>
+
+            <!-- VPD Index -->
+            <div class="liquid-glass rounded-[2rem] p-8 transition-all hover:-translate-y-2 group">
+                <div class="absolute top-[-20%] right-[-10%] w-32 h-32 bg-purple-500/5 blur-3xl group-hover:bg-purple-500/10 transition-all"></div>
+                <div class="flex justify-between items-start mb-6">
+                    <div class="p-4 rounded-2xl bg-gradient-to-br from-purple-500/20 to-purple-600/5 border border-purple-500/20 shadow-inner">
+                        <i data-lucide="wind" class="text-purple-400 w-7 h-7"></i>
+                    </div>
+                    <span class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Field 03</span>
+                </div>
+                <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">VPD Index</h3>
+                <div class="flex items-baseline gap-3">
+                    <span id="field3" class="text-5xl font-black text-white tracking-tighter">--</span>
+                    <span class="text-purple-500/70 font-black text-xl italic">kPa</span>
+                </div>
             </div>
-            <div class="liquid-glass rounded-2xl p-5 border-emerald-500/20">
-                <h3 class="text-slate-500 text-[10px] font-bold uppercase mb-2">Atmo</h3>
-                <p class="text-3xl font-black text-white"><span id="field4">--</span><small class="text-sm text-emerald-500 ml-1">kPa</small></p>
+
+            <!-- Atmospheric -->
+            <div class="liquid-glass rounded-[2rem] p-8 transition-all hover:-translate-y-2 group">
+                <div class="absolute top-[-20%] right-[-10%] w-32 h-32 bg-emerald-500/5 blur-3xl group-hover:bg-emerald-500/10 transition-all"></div>
+                <div class="flex justify-between items-start mb-6">
+                    <div class="p-4 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/5 border border-emerald-500/20 shadow-inner">
+                        <i data-lucide="gauge" class="text-emerald-400 w-7 h-7"></i>
+                    </div>
+                    <span class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Field 04</span>
+                </div>
+                <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Atmospheric</h3>
+                <div class="flex items-baseline gap-3">
+                    <span id="field4" class="text-5xl font-black text-white tracking-tighter">--</span>
+                    <span class="text-emerald-500/70 font-black text-xl italic">kPa</span>
+                </div>
             </div>
-            <div class="liquid-glass rounded-2xl p-5 border-yellow-500/20">
-                <h3 class="text-slate-500 text-[10px] font-bold uppercase mb-2">Light</h3>
-                <p class="text-3xl font-black text-white"><span id="field5">--</span><small class="text-sm text-yellow-500 ml-1">Lx</small></p>
+
+            <!-- Luminous Flux -->
+            <div class="liquid-glass rounded-[2rem] p-8 transition-all hover:-translate-y-2 group">
+                <div class="absolute top-[-20%] right-[-10%] w-32 h-32 bg-yellow-500/5 blur-3xl group-hover:bg-yellow-500/10 transition-all"></div>
+                <div class="flex justify-between items-start mb-6">
+                    <div class="p-4 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-yellow-600/5 border border-yellow-500/20 shadow-inner">
+                        <i data-lucide="sun" class="text-yellow-400 w-7 h-7"></i>
+                    </div>
+                    <span class="text-slate-500 text-[10px] font-bold uppercase tracking-[0.3em]">Field 05</span>
+                </div>
+                <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Luminous Flux</h3>
+                <div class="flex items-baseline gap-3">
+                    <span id="field5" class="text-5xl font-black text-white tracking-tighter">--</span>
+                    <span class="text-yellow-500/70 font-black text-xl italic">Lux</span>
+                </div>
+            </div>
+
+            <!-- AI Neural Engine (Modified with Analyze Button) -->
+            <div class="liquid-glass rounded-[2rem] p-8 flex flex-col justify-center relative shadow-2xl group border-emerald-500/30">
+                <div class="absolute -top-10 -left-10 w-40 h-40 bg-emerald-500/10 animate-liquid blur-xl"></div>
+                <div class="relative z-10">
+                    <div class="flex items-center gap-2 mb-3">
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                        <h3 class="text-emerald-400 font-black text-xs uppercase tracking-[0.2em]">Neural Engine Active</h3>
+                    </div>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                        System functioning at <span class="text-white font-bold">99.8%</span> efficiency. Adaptive relay logic enabled for MKR-1010.
+                    </p>
+                    <div class="flex flex-col gap-2">
+                        <button onclick="analyzeData()" id="analyzeBtn" class="w-full flex items-center justify-center gap-3 px-5 py-3 rounded-xl bg-emerald-500 text-slate-900 text-xs font-black uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="brain-circuit" class="w-4 h-4"></i> 
+                            <span id="analyzeBtnText">Analyze Neural Matrix</span>
+                        </button>
+                        <a href="https://thingspeak.com/channels/3254588" target="_blank" class="w-full flex items-center justify-between px-5 py-2 rounded-xl bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:bg-white/10 transition-all group/link">
+                            Intelligence Source <i data-lucide="arrow-up-right" class="w-3.5 h-3.5 group-hover/link:translate-x-1 group-hover/link:-translate-y-1 transition-transform"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-            <!-- Main Chart Area -->
-            <div class="lg:col-span-2 liquid-glass rounded-3xl p-8 min-h-[400px]">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold flex items-center gap-2"><i data-lucide="bar-chart-3" class="text-emerald-400"></i> Environmental Matrix</h2>
+        <!-- AI Insight Panel (New Section) -->
+        <div id="aiInsightPanel" class="hidden mb-10 transition-all">
+            <div class="liquid-glass rounded-[2rem] border-emerald-500/20 p-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4">
+                    <button onclick="document.getElementById('aiInsightPanel').classList.add('hidden')" class="text-slate-500 hover:text-white transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
-                <div class="h-[320px]">
+                <div class="flex items-start gap-6">
+                    <div class="hidden md:block p-4 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                        <i data-lucide="bot" class="text-emerald-400 w-8 h-8"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20 tracking-widest uppercase">AI Synthesis</span>
+                            <span id="analysisTime" class="text-[10px] text-slate-500 font-mono">T+0.00s</span>
+                        </div>
+                        <h2 class="text-xl font-bold text-white mb-4">Neural Data Interpretation</h2>
+                        <div id="aiResponseContent" class="text-slate-300 text-sm leading-relaxed space-y-4">
+                            <!-- AI Content Populated Here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto mb-16">
+            <div class="liquid-glass rounded-[2.5rem] p-8 md:p-10 shadow-3xl border-white/5">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-10 gap-6">
+                    <div>
+                        <h2 class="text-2xl font-black text-white flex items-center gap-4">
+                            <i data-lucide="line-chart" class="text-emerald-400 w-8 h-8"></i>
+                            Environmental Matrix
+                        </h2>
+                        <p class="text-slate-500 text-sm font-medium mt-1">Spatiotemporal data visualization</p>
+                    </div>
+                    <div class="flex flex-wrap gap-4">
+                        <div class="px-4 py-2 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-orange-500 shadow-[0_0_10px_#f97316]"></div>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-300">Temp</span>
+                        </div>
+                        <div class="px-4 py-2 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]"></div>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-300">Humid</span>
+                        </div>
+                        <div class="px-4 py-2 rounded-xl bg-white/5 border border-white/5 flex items-center gap-3">
+                            <div class="w-3 h-3 rounded-full bg-purple-500 shadow-[0_0_10px_#a855f7]"></div>
+                            <span class="text-[10px] font-black uppercase tracking-widest text-slate-300">VPD</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="h-[450px] w-full chart-container">
                     <canvas id="trendChart"></canvas>
                 </div>
             </div>
+        </div>
 
-            <!-- AI Neural Chatbot -->
-            <div class="liquid-glass rounded-3xl p-0 flex flex-col h-[500px] border-indigo-500/20 overflow-hidden">
-                <!-- Chat Header -->
-                <div class="p-4 bg-indigo-500/10 border-b border-white/5 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                        <span class="text-xs font-bold uppercase tracking-widest text-indigo-300">Neural Context Engine</span>
+        <!-- NEW CHATBOT AT THE END -->
+        <div class="max-w-md mx-auto mb-20 relative">
+            <div class="liquid-glass rounded-3xl p-6 border-emerald-500/20 shadow-2xl overflow-hidden flex flex-col h-[420px]">
+                <div class="flex items-center gap-3 mb-4 border-b border-white/5 pb-4">
+                    <div class="p-2 rounded-lg bg-emerald-500/10">
+                        <i data-lucide="message-square" class="text-emerald-400 w-5 h-5"></i>
                     </div>
-                    <button onclick="resetChat()" class="text-slate-500 hover:text-white transition-colors">
-                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
-                    </button>
+                    <div>
+                        <h3 class="text-xs font-black uppercase tracking-widest text-white">Bot Intelligence</h3>
+                        <p class="text-[10px] text-emerald-500/70 font-bold">Neural Uplink Active</p>
+                    </div>
                 </div>
                 
-                <!-- Chat Body -->
-                <div id="chatHistory" class="flex-grow overflow-y-auto p-5 custom-scrollbar flex flex-col">
-                    <div class="chat-bubble bubble-ai">
-                        Welcome to AGRI-OS Intelligence. I've detected live telemetry. To formulate a decision, please tell me: <strong>What plant species are you growing?</strong>
-                    </div>
+                <div id="bot-messages" class="flex-1 overflow-y-auto space-y-4 mb-4 pr-2 custom-scrollbar">
+                    <div class="bot-bubble">Hello! I am the AGRI-OS Assistant. To provide a precision result, please tell me: **What type of plant** are you growing?</div>
                 </div>
 
-                <!-- Chat Input -->
-                <div class="p-4 border-t border-white/5 bg-slate-900/40">
-                    <div class="flex gap-2">
-                        <input type="text" id="userInput" placeholder="Type response..." 
-                               class="flex-grow bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500/50 transition-all text-white">
-                        <button onclick="handleSendMessage()" id="sendBtn" class="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all">
-                            <i data-lucide="send" class="w-4 h-4"></i>
-                        </button>
-                    </div>
+                <div class="flex gap-2">
+                    <input type="text" id="bot-input" placeholder="Enter response..." class="flex-1 bg-slate-900/50 border border-white/10 rounded-xl px-4 py-2 text-xs focus:outline-none focus:border-emerald-500/50 text-white placeholder-slate-600">
+                    <button onclick="handleBotResponse()" class="p-2.5 bg-emerald-500 rounded-xl hover:bg-emerald-400 transition-all text-slate-900 shadow-lg shadow-emerald-500/20">
+                        <i data-lucide="send" class="w-4 h-4"></i>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <footer class="text-center opacity-40 text-[10px] tracking-[0.5em] font-black mb-10">
-            CORE NODE: 3254588 // NEURAL SYNC ACTIVE
+        <footer class="pb-12 text-center">
+            <div class="inline-block px-6 py-2 rounded-full bg-white/5 border border-white/5 text-[10px] font-black tracking-[0.4em] uppercase text-slate-500">
+                AGRI-OS // Advanced Agriculture Operating System v2.0
+            </div>
         </footer>
     </div>
 
     <script>
         const channelId = "3254588";
         const readApiKey = "YIPXD4IMUVM0MYR5";
-        const AI_API = 'https://ai-cli-connect-stable.pages.dev/llamageneral';
+        const geminiApiKey = ""; // Provided by environment
         let trendChart;
+        let lastFeeds = [];
 
-        // Chat State
-        let chatStep = 0; // 0: Plant name, 1: Growth stage, 2: Continuous Chat
-        let plantData = { name: '', stage: '' };
-        let chatContext = []; // Stores history for continuous chat
+        // BOT STATE
+        let botStep = 0; // 0: ask species, 1: ask state, 2: processing
+        let plantData = { species: '', state: '' };
 
-        function addMessage(text, role) {
-            const history = document.getElementById('chatHistory');
-            const div = document.createElement('div');
-            div.className = `chat-bubble ${role === 'user' ? 'bubble-user' : 'bubble-ai'}`;
-            div.innerHTML = text;
-            history.appendChild(div);
-            history.scrollTop = history.scrollHeight;
-            
-            // Limit context to prevent token bloat
-            chatContext.push({ role: role === 'user' ? 'user' : 'assistant', content: text.replace(/<[^>]*>?/gm, '') });
-            if (chatContext.length > 10) chatContext.shift();
+        const pCanvas = document.getElementById('particle-canvas');
+        const pCtx = pCanvas.getContext('2d');
+        let particles = [];
+        
+        function resizeCanvas() {
+            pCanvas.width = window.innerWidth;
+            pCanvas.height = window.innerHeight;
         }
 
-        async function handleSendMessage() {
-            const input = document.getElementById('userInput');
-            const text = input.value.trim();
-            if (!text) return;
-
-            addMessage(text, 'user');
-            input.value = '';
-
-            if (chatStep === 0) {
-                plantData.name = text;
-                chatStep = 1;
-                setTimeout(() => {
-                    addMessage(`Got it: ${text}. Is this a <strong>Sapling</strong>, or is it in the <strong>Vegetative</strong> or <strong>Flowering</strong> stage?`, 'ai');
-                }, 600);
-            } else if (chatStep === 1) {
-                plantData.stage = text;
-                chatStep = 2; // Move to continuous mode after this
-                formulateInitialDecision();
-            } else {
-                // Continuous chat mode
-                handleContinuousChat(text);
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = Math.random() * pCanvas.width;
+                this.y = Math.random() * pCanvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = Math.random() * 0.5 - 0.25;
+                this.speedY = Math.random() * 0.5 - 0.25;
+                this.opacity = Math.random() * 0.3 + 0.1;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x < 0 || this.x > pCanvas.width || this.y < 0 || this.y > pCanvas.height) this.reset();
+            }
+            draw() {
+                pCtx.fillStyle = `rgba(16, 185, 129, ${this.opacity})`;
+                pCtx.beginPath();
+                pCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                pCtx.fill();
             }
         }
 
-        async function formulateInitialDecision() {
-            showTyping();
-            
-            const sensorStr = getSensorTelemetry();
-            const prompt = `System Telemetry: ${sensorStr}. 
-            Context: Plant is ${plantData.name}, Stage is ${plantData.stage}.
-            Decision Request: Based on the sensor data and plant context, give a professional agricultural verdict. 
-            Format: One sentence assessment, one sentence risk warning, and one clear ACTION command. Keep it strictly professional.`;
-
-            await callAI(prompt, "<strong>Decision Finalized:</strong><br>");
+        function initParticles() {
+            particles = [];
+            const count = Math.floor((pCanvas.width * pCanvas.height) / 10000);
+            for (let i = 0; i < count; i++) particles.push(new Particle());
         }
 
-        async function handleContinuousChat(userMessage) {
-            showTyping();
-            const sensorStr = getSensorTelemetry();
-            const prompt = `LATEST SENSORS: ${sensorStr}. 
-            PLANT: ${plantData.name} (${plantData.stage}).
-            The user just asked: "${userMessage}". 
-            Answer their query using the telemetry data if relevant. Keep it helpful but concise.`;
-
-            await callAI(prompt);
+        function animateParticles() {
+            pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateParticles);
         }
 
-        function getSensorTelemetry() {
-            const temp = document.getElementById('field1').textContent;
-            const humid = document.getElementById('field2').textContent;
-            const vpd = document.getElementById('field3').textContent;
-            const lux = document.getElementById('field5').textContent;
-            return `Temp=${temp}C, Humid=${humid}%, VPD=${vpd}kPa, Lux=${lux}`;
-        }
-
-        function showTyping() {
-            const history = document.getElementById('chatHistory');
-            const div = document.createElement('div');
-            div.id = 'typing-indicator';
-            div.className = 'chat-bubble bubble-ai';
-            div.innerHTML = `<div class="flex gap-1"><span class="typing-dot">.</span><span class="typing-dot" style="animation-delay:0.2s">.</span><span class="typing-dot" style="animation-delay:0.4s">.</span></div>`;
-            history.appendChild(div);
-            history.scrollTop = history.scrollHeight;
-        }
-
-        async function callAI(prompt, prefix = "") {
-            try {
-                const response = await fetch(AI_API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: "llama-3.3-70b-versatile",
-                        messages: [
-                            { role: "system", content: "You are the AGRI-OS Neural Context Engine. You provide high-precision agricultural advice based on live telemetry." },
-                            ...chatContext,
-                            { role: "user", content: prompt }
-                        ]
-                    })
-                });
-                const data = await response.json();
-                const aiResponse = data.choices?.[0]?.message?.content || "Connection timeout.";
-                
-                const indicator = document.getElementById('typing-indicator');
-                if (indicator) indicator.remove();
-                
-                addMessage(`${prefix}${aiResponse.replace(/\n/g, '<br>')}`, 'ai');
-            } catch (err) {
-                const indicator = document.getElementById('typing-indicator');
-                if (indicator) indicator.remove();
-                addMessage("Neural link failure. Retrying sync...", "ai");
-            }
-        }
-
-        function resetChat() {
-            chatStep = 0;
-            plantData = { name: '', stage: '' };
-            chatContext = [];
-            document.getElementById('chatHistory').innerHTML = `
-                <div class="chat-bubble bubble-ai">
-                    Neural Context reset. Telemetry re-analyzed. <strong>What plant species are you growing?</strong>
-                </div>`;
-        }
-
-        async function fetchData() {
-            const icon = document.getElementById('refreshIcon');
-            icon.classList.add('animate-spin');
-            try {
-                const res = await fetch(`https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${readApiKey}&results=15`);
-                const data = await res.json();
-                const latest = data.feeds[data.feeds.length - 1];
-                
-                document.getElementById('field1').textContent = parseFloat(latest.field1).toFixed(1);
-                document.getElementById('field2').textContent = Math.round(latest.field2);
-                document.getElementById('field3').textContent = parseFloat(latest.field3).toFixed(2);
-                document.getElementById('field4').textContent = parseFloat(latest.field4).toFixed(1);
-                document.getElementById('field5').textContent = Math.round(latest.field5);
-
-                trendChart.data.labels = data.feeds.map(f => new Date(f.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
-                trendChart.data.datasets[0].data = data.feeds.map(f => f.field1);
-                trendChart.data.datasets[1].data = data.feeds.map(f => f.field2);
-                trendChart.update();
-            } catch (e) { console.error(e); }
-            setTimeout(() => icon.classList.remove('animate-spin'), 1000);
-        }
+        window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
 
         function initChart() {
             const ctx = document.getElementById('trendChart').getContext('2d');
@@ -339,53 +441,255 @@
                 data: {
                     labels: [],
                     datasets: [
-                        { label: 'Temp', data: [], borderColor: '#f97316', borderWidth: 3, tension: 0.4, pointRadius: 0, fill: false },
-                        { label: 'Humid', data: [], borderColor: '#3b82f6', borderWidth: 3, tension: 0.4, pointRadius: 0, fill: false }
+                        { label: 'Temperature', data: [], borderColor: '#f97316', borderWidth: 4, tension: 0.45, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#f97316', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 3, fill: false },
+                        { label: 'Humidity', data: [], borderColor: '#3b82f6', borderWidth: 4, tension: 0.45, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#3b82f6', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 3, fill: false },
+                        { label: 'VPD Scan', data: [], borderColor: '#a855f7', borderWidth: 2, borderDash: [8, 5], tension: 0.45, pointRadius: 0, fill: false }
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, 
-                scales: { x: { grid: { display: false }, ticks: { color: '#475569' } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#475569' } } } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', backdropFilter: 'blur(8px)', titleFont: { family: 'Plus Jakarta Sans', size: 13, weight: 'bold' }, bodyFont: { family: 'Plus Jakarta Sans', size: 12 }, padding: 16, borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: 1, cornerRadius: 16, usePointStyle: true, boxPadding: 8 }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#64748b', font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' }, maxTicksLimit: 6 }, border: { display: false } },
+                        y: { grid: { color: 'rgba(255, 255, 255, 0.03)', drawTicks: false }, ticks: { color: '#64748b', font: { family: 'Plus Jakarta Sans', size: 10, weight: '600' }, padding: 10 }, border: { display: false } }
+                    }
+                }
             });
         }
+
+        function clearGraph() {
+            trendChart.data.labels = [];
+            trendChart.data.datasets.forEach(dataset => dataset.data = []);
+            trendChart.update('active');
+        }
+
+        async function fetchData() {
+            const refreshIcon = document.getElementById('refreshIcon');
+            const errorAlert = document.getElementById('errorAlert');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const lastUpdateEl = document.getElementById('lastUpdate');
+            refreshIcon.classList.add('animate-spin');
+            refreshBtn.disabled = true;
+            try {
+                const url = `https://api.thingspeak.com/channels/${channelId}/feeds.json?api_key=${readApiKey}&results=20`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Uplink Interrupted');
+                const result = await response.json();
+                if (result.feeds && result.feeds.length > 0) {
+                    lastFeeds = result.feeds;
+                    const latest = result.feeds[result.feeds.length - 1];
+                    document.getElementById('field1').textContent = latest.field1 ? parseFloat(latest.field1).toFixed(1) : '--';
+                    document.getElementById('field2').textContent = latest.field2 ? Math.round(latest.field2) : '--';
+                    document.getElementById('field3').textContent = latest.field3 ? parseFloat(latest.field3).toFixed(2) : '--';
+                    document.getElementById('field4').textContent = latest.field4 ? parseFloat(latest.field4).toFixed(1) : '--';
+                    document.getElementById('field5').textContent = latest.field5 ? Math.round(latest.field5) : '--';
+                    
+                    const syncTime = new Date();
+                    const h = String(syncTime.getHours()).padStart(2, '0');
+                    const m = String(syncTime.getMinutes()).padStart(2, '0');
+                    const s = String(syncTime.getSeconds()).padStart(2, '0');
+                    lastUpdateEl.textContent = `${h}:${m}:${s}`;
+                    
+                    errorAlert.classList.add('hidden');
+                    const labels = result.feeds.map(f => {
+                        const date = new Date(f.created_at);
+                        const month = date.toLocaleDateString([], { month: 'short' });
+                        const day = date.toLocaleDateString([], { day: 'numeric' });
+                        const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                        return `${month} ${day}, ${time}`;
+                    });
+                    trendChart.data.labels = labels;
+                    trendChart.data.datasets[0].data = result.feeds.map(f => parseFloat(f.field1));
+                    trendChart.data.datasets[1].data = result.feeds.map(f => parseFloat(f.field2));
+                    trendChart.data.datasets[2].data = result.feeds.map(f => parseFloat(f.field3));
+                    trendChart.update('none'); 
+                } else {
+                    throw new Error('Zero Data Payload Received');
+                }
+            } catch (err) {
+                errorAlert.classList.remove('hidden');
+                document.getElementById('errorMessage').textContent = `CRITICAL_ERROR: ${err.message}`;
+            } finally {
+                setTimeout(() => {
+                    refreshIcon.classList.remove('animate-spin');
+                    refreshBtn.disabled = false;
+                }, 800);
+            }
+        }
+
+        async function analyzeData() {
+            if (lastFeeds.length === 0) return;
+
+            const btn = document.getElementById('analyzeBtn');
+            const btnText = document.getElementById('analyzeBtnText');
+            const panel = document.getElementById('aiInsightPanel');
+            const content = document.getElementById('aiResponseContent');
+            const timer = document.getElementById('analysisTime');
+
+            btn.disabled = true;
+            btnText.className = "ai-loading-dots";
+            btnText.textContent = "Processing Matrix";
+            
+            panel.classList.remove('hidden');
+            content.innerHTML = '<p class="animate-pulse italic opacity-60">Scanning environment telemetry, calculating trends, and formulating neural response...</p>';
+            
+            const start = performance.now();
+
+            const latest = lastFeeds[lastFeeds.length - 1];
+            const dataContext = `
+                Current Telemetry:
+                - Temp: ${latest.field1}°C
+                - Humidity: ${latest.field2}%
+                - VPD: ${latest.field3} kPa
+                - Atmospheric Pressure: ${latest.field4} kPa
+                - Light: ${latest.field5} Lux
+                
+                History (Last 20 points avg):
+                - Avg Temp: ${(lastFeeds.reduce((a,b) => a + parseFloat(b.field1 || 0), 0) / lastFeeds.length).toFixed(2)}
+                - Avg Humid: ${(lastFeeds.reduce((a,b) => a + parseFloat(b.field2 || 0), 0) / lastFeeds.length).toFixed(2)}
+            `;
+
+            const prompt = `You are the AGRI-OS Neural Intelligence Engine. Analyze this crop environment data: ${dataContext}. 
+            Provide a concise, professional agricultural analysis in 3 short paragraphs:
+            1. Status assessment (How are the current levels for typical greenhouse crops?)
+            2. VPD & Transpiration logic (Analyze the Vapor Pressure Deficit impact)
+            3. Actionable recommendation (What should the grower do right now?)
+            Use professional but futuristic tone. Avoid markdown headers like #. Use bullet points if needed.`;
+
+            try {
+                let responseText = await callGeminiAI(prompt);
+                
+                const end = performance.now();
+                timer.textContent = `T+${((end - start)/1000).toFixed(2)}s`;
+                
+                content.innerHTML = responseText.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('');
+                lucide.createIcons();
+            } catch (error) {
+                content.innerHTML = `<p class="text-red-400">FAILED TO SYNC WITH NEURAL CORE: ${error.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                btnText.className = "";
+                btnText.textContent = "Analyze Neural Matrix";
+            }
+        }
+
+        async function callGeminiAI(userQuery) {
+            const systemPrompt = "You are the AI brain of an advanced agricultural operating system called AGRI-OS. You provide high-precision environmental analysis.";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+            
+            let retries = 5;
+            let delay = 1000;
+
+            while (retries > 0) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: userQuery }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] }
+                        })
+                    });
+
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "No response received from Neural Core.";
+                } catch (error) {
+                    retries--;
+                    if (retries === 0) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        // CHATBOT LOGIC
+        function addBotMessage(text) {
+            const container = document.getElementById('bot-messages');
+            const msg = document.createElement('div');
+            msg.className = 'bot-bubble';
+            msg.textContent = text;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function addUserMessage(text) {
+            const container = document.getElementById('bot-messages');
+            const msg = document.createElement('div');
+            msg.className = 'user-bubble';
+            msg.textContent = text;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function handleBotResponse() {
+            const input = document.getElementById('bot-input');
+            const val = input.value.trim();
+            if (!val) return;
+
+            addUserMessage(val);
+            input.value = '';
+
+            if (botStep === 0) {
+                plantData.species = val;
+                botStep = 1;
+                setTimeout(() => addBotMessage(`Acknowledged: ${val}. Now, what is the state of the plant? (e.g., Adult, Seedling, Flowering, Vegetative)`), 400);
+            } else if (botStep === 1) {
+                plantData.state = val;
+                botStep = 2;
+                addBotMessage("Computing neural result based on live telemetry...");
+                
+                const latest = lastFeeds.length > 0 ? lastFeeds[lastFeeds.length-1] : { field1: '??', field2: '??', field3: '??' };
+                const context = `Plant: ${plantData.species}, State: ${plantData.state}. Current Telemetry: Temp ${latest.field1}C, Humid ${latest.field2}%, VPD ${latest.field3}kPa.`;
+                const prompt = `Based on these details: ${context}, determine the Growth Result/Care Division for this plant. Be concise (2-3 sentences max).`;
+
+                try {
+                    const result = await callGeminiAI(prompt);
+                    addBotMessage(result);
+                    botStep = 0; // Reset
+                    setTimeout(() => addBotMessage("You can start over by entering a new plant type."), 2000);
+                } catch (e) {
+                    addBotMessage("Error in neural uplink. Please try again.");
+                    botStep = 0;
+                }
+            }
+        }
+
+        // Enter key for bot
+        document.getElementById('bot-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleBotResponse();
+        });
 
         function syncClock() {
             const clockEl = document.getElementById('time_is_span');
+            if (!clockEl) return;
+            
             const now = new Date();
-            clockEl.textContent = now.toLocaleTimeString([], {hour12: false});
-            setTimeout(syncClock, 1000 - now.getMilliseconds());
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            
+            clockEl.textContent = `${h}:${m}:${s}`;
+            
+            const msToNextSecond = 1000 - now.getMilliseconds();
+            setTimeout(syncClock, msToNextSecond);
         }
 
-        function initParticles() {
-            const pCanvas = document.getElementById('particle-canvas');
-            const ctx = pCanvas.getContext('2d');
-            let pts = [];
-            pCanvas.width = window.innerWidth;
-            pCanvas.height = window.innerHeight;
-            for(let i=0; i<50; i++) pts.push({x:Math.random()*pCanvas.width, y:Math.random()*pCanvas.height, vx:Math.random()-0.5, vy:Math.random()-0.5});
-            function anim() {
-                ctx.clearRect(0,0,pCanvas.width, pCanvas.height);
-                ctx.fillStyle = "rgba(16, 185, 129, 0.2)";
-                pts.forEach(p => {
-                    p.x += p.vx; p.y += p.vy;
-                    if(p.x<0 || p.x>pCanvas.width) p.vx*=-1;
-                    if(p.y<0 || p.y>pCanvas.height) p.vy*=-1;
-                    ctx.beginPath(); ctx.arc(p.x, p.y, 1.5, 0, Math.PI*2); ctx.fill();
-                });
-                requestAnimationFrame(anim);
-            }
-            anim();
-        }
-
-        window.onload = () => {
-            lucide.createIcons();
+        window.onload = function () {
+            resizeCanvas();
+            initParticles();
+            animateParticles();
             initChart();
             fetchData();
             syncClock();
-            initParticles();
-            
-            document.getElementById('userInput').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') handleSendMessage();
-            });
+            lucide.createIcons();
+            setInterval(fetchData, 30000);
         };
     </script>
 </body>
