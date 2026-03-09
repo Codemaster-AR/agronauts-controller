@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Main code -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AGRI-OS LIVE Dashboard</title>
@@ -384,9 +385,6 @@
         let trendChart;
         let lastFeeds = [];
 
-        // BOT STATE
-        let botStep = 0; // 0: ask species, 1: ask state, 2: processing
-        let plantData = { species: '', state: '' };
 
         const pCanvas = document.getElementById('particle-canvas');
         const pCtx = pCanvas.getContext('2d');
@@ -610,54 +608,104 @@
         }
 
         // CHATBOT LOGIC
+        const PROXY_URL = "https://ai-cli-connect-stable.pages.dev/llamageneral";
+        const MODEL_NAME = "llama-3.1-8b-instant";
+        const MAX_RETRIES = 5;
+
+        let chatHistory = [
+            { role: "system", content: "You are a helpful AI assistant powered by Llama 3.1 8B, integrated into the AGRI-OS Dashboard. You provide agricultural insights and assist with general queries." }
+        ];
+
         function addBotMessage(text) {
             const container = document.getElementById('bot-messages');
             const msg = document.createElement('div');
             msg.className = 'bot-bubble';
-            msg.textContent = text;
+            msg.style.whiteSpace = 'pre-wrap';
+            msg.innerHTML = text;
             container.appendChild(msg);
             container.scrollTop = container.scrollHeight;
+            return msg;
         }
 
         function addUserMessage(text) {
             const container = document.getElementById('bot-messages');
             const msg = document.createElement('div');
             msg.className = 'user-bubble';
+            msg.style.whiteSpace = 'pre-wrap';
             msg.textContent = text;
             container.appendChild(msg);
             container.scrollTop = container.scrollHeight;
         }
 
+        async function fetchWithRetry(payload) {
+            for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+                try {
+                    const response = await fetch(PROXY_URL, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: { 
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorMsg = await response.text();
+                        throw new Error(`Proxy Error (${response.status}): ${errorMsg || 'No response'}`);
+                    }
+                    
+                    const data = await response.json();
+                    return data.choices?.[0]?.message?.content || "The model returned an empty response.";
+                } catch (error) {
+                    console.error(`Attempt ${attempt + 1} failed:`, error);
+                    if (attempt === MAX_RETRIES - 1) {
+                        throw new Error("Connection failed. Please check your network or CORS settings.");
+                    }
+                    const waitTime = Math.pow(2, attempt) * 1000;
+                    await new Promise(res => setTimeout(res, waitTime));
+                }
+            }
+        }
+
         async function handleBotResponse() {
             const input = document.getElementById('bot-input');
-            const val = input.value.trim();
-            if (!val) return;
+            const text = input.value.trim();
+            if (!text) return;
 
-            addUserMessage(val);
             input.value = '';
+            addUserMessage(text);
+            
+            // Refresh system context with live data and units
+            const latest = lastFeeds.length > 0 ? lastFeeds[lastFeeds.length - 1] : null;
+            const dataString = latest ? 
+                `Temp: ${latest.field1}°C, Humid: ${latest.field2}%, VPD: ${latest.field3}kPa, Press: ${latest.field4}kPa, Light: ${latest.field5}Lux` : 
+                "No live telemetry available.";
+            
+            chatHistory[0].content = `You are the AGRI-OS Neural Intelligence Engine. Integrated into the dashboard. 
+            Live Telemetry Context: ${dataString}. 
+            Units: Temperature (°C), Humidity (%), VPD (kPa), Atmospheric Pressure (kPa), Luminous Flux (Lux). 
+            Provide concise, professional agricultural advice based on this data when relevant.`;
 
-            if (botStep === 0) {
-                plantData.species = val;
-                botStep = 1;
-                setTimeout(() => addBotMessage(`Acknowledged: ${val}. Now, what is the state of the plant? (e.g., Adult, Seedling, Flowering, Vegetative)`), 400);
-            } else if (botStep === 1) {
-                plantData.state = val;
-                botStep = 2;
-                addBotMessage("Computing neural result based on live telemetry...");
+            chatHistory.push({ role: "user", content: text });
+
+            const loadingMsg = addBotMessage("Thinking...");
+            loadingMsg.classList.add('ai-loading-dots');
+
+            try {
+                const aiResponse = await fetchWithRetry({
+                    model: MODEL_NAME,
+                    messages: chatHistory,
+                    stream: false
+                });
                 
-                const latest = lastFeeds.length > 0 ? lastFeeds[lastFeeds.length-1] : { field1: '??', field2: '??', field3: '??' };
-                const context = `Plant: ${plantData.species}, State: ${plantData.state}. Current Telemetry: Temp ${latest.field1}C, Humid ${latest.field2}%, VPD ${latest.field3}kPa.`;
-                const prompt = `Based on these details: ${context}, determine the Growth Result/Care Division for this plant. Be concise (2-3 sentences max).`;
+                loadingMsg.classList.remove('ai-loading-dots');
+                loadingMsg.innerHTML = aiResponse;
+                chatHistory.push({ role: "assistant", content: aiResponse });
 
-                try {
-                    const result = await callGeminiAI(prompt);
-                    addBotMessage(result);
-                    botStep = 0; // Reset
-                    setTimeout(() => addBotMessage("You can start over by entering a new plant type."), 2000);
-                } catch (e) {
-                    addBotMessage("Error in neural uplink. Please try again.");
-                    botStep = 0;
-                }
+            } catch (error) {
+                loadingMsg.classList.remove('ai-loading-dots');
+                loadingMsg.textContent = `⚠️ ${error.message}`;
+                console.error('Final Chat Error:', error);
             }
         }
 
